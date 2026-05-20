@@ -3,14 +3,26 @@ services:
     image: postgres:16
     container_name: invoice_postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-invoice_admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-invoice_pass_123}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:-postgres_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:-postgres_admin_pass_123}
       POSTGRES_DB: ${POSTGRES_DB:-invoice_root}
+
+      AUTH_DB_NAME: ${AUTH_DB_NAME:-auth_db}
+      AUTH_DB_USER: ${AUTH_DB_USER:-auth_user}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:-auth_pass_123}
+
+      CUSTOMER_DB_NAME: ${CUSTOMER_DB_NAME:-customer_db}
+      CUSTOMER_DB_USER: ${CUSTOMER_DB_USER:-customer_user}
+      CUSTOMER_DB_PASSWORD: ${CUSTOMER_DB_PASSWORD:-customer_pass_123}
+
+      INVOICE_DB_NAME: ${INVOICE_DB_NAME:-invoice_db}
+      INVOICE_DB_USER: ${INVOICE_DB_USER:-invoice_user}
+      INVOICE_DB_PASSWORD: ${INVOICE_DB_PASSWORD:-invoice_pass_123}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
 
   pgadmin:
     image: dpage/pgadmin4
@@ -22,6 +34,9 @@ services:
       - "5050:80"
     depends_on:
       - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
 
 volumes:
   postgres_data:
+  pgadmin_data:

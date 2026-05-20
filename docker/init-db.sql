@@ -1,3 +1,0 @@
-CREATE DATABASE auth_db;
-CREATE DATABASE customer_db;
-CREATE DATABASE invoice_db;
