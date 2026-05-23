@@ -47,26 +47,6 @@ InvoiceManagementProject/
 
 ---
 
-## Genel Akış
-Frontend, backend servislerine doğrudan gitmez. Angular uygulaması /api ile başlayan istekleri Nginx üzerinden API Gateway’e yönlendirir.
-
-Browser
-  |
-  v
-Angular Frontend / Nginx
-  |
-  v
-/api proxy
-  |
-  v
-API Gateway
-  |
-  ├── AuthService
-  ├── CustomerService
-  └── InvoiceService
-
----
-
 ## 🔗 Microservice Mimarisi
 
 | Servis           | Sorumluluk                                         | Veritabanı  | Kullanıcı     |
@@ -107,30 +87,30 @@ Her servis kendi veritabanına sahiptir. Servisler birbirinin veritabanına doğ
 ## Backend Endpointleri
 
 ### AuthService
-POST /api/auth/register
-POST /api/auth/login
-POST /api/auth/refresh
-POST /api/auth/revoke
+- POST /api/auth/register
+- POST /api/auth/login
+- POST /api/auth/refresh
+- POST /api/auth/revoke
 
 ### CustomerService
-GET    /api/customers
-GET    /api/customers/{id}
-POST   /api/customers
-PUT    /api/customers/{id}
-DELETE /api/customers/{id}
+- GET    /api/customers
+- GET    /api/customers/{id}
+- POST   /api/customers
+- PUT    /api/customers/{id}
+- DELETE /api/customers/{id}
 
 ### InvoiceService
-POST   /api/invoices/save
-PUT    /api/invoices/update/{id}
-DELETE /api/invoices/delete/{id}
-GET    /api/invoices/list
-GET    /api/invoices/{id}
+- POST   /api/invoices/save
+- PUT    /api/invoices/update/{id}
+- DELETE /api/invoices/delete/{id}
+- GET    /api/invoices/list
+- GET    /api/invoices/{id}
 
-- Invoice list endpointi şu query parametrelerini destekler:
-  startDate
-  endDate
-  customerId
-  allDates
+Invoice list endpointi şu query parametrelerini destekler:
+- startDate
+- endDate
+- customerId
+- allDates
 
 ---
 ## Erişim Adresleri
@@ -146,7 +126,6 @@ Docker Compose çalıştıktan sonra uygulamaya şu adresten erişilir:
 | InvoiceService Swagger | http://localhost:5003/swagger |
 
 ApiGateway dışarıya sabit bir portla açılmaz. Docker tarafından otomatik port atanır.
-
 
 ---
 
