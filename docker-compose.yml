@@ -102,6 +102,8 @@ services:
       context: .
       dockerfile: src/backend/api-gateway/Dockerfile
     container_name: api_gateway
+    ports:
+      - ":8080"
     environment:
       ASPNETCORE_URLS: http://+:8080
       ASPNETCORE_ENVIRONMENT: Development
