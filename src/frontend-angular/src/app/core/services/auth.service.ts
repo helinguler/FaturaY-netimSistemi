@@ -11,7 +11,7 @@ import { AuthResponse, LoginRequest, RegisterRequest } from '../models/auth.mode
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly apiUrl = 'http://localhost:5000/api/auth';
+  private readonly apiUrl = 'http://localhost:7000/api/auth';
 
   // localStorage key değerleri
   private readonly tokenKey = 'access_token';

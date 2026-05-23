@@ -85,6 +85,7 @@ export class InvoiceFormComponent implements OnInit {
   removeLine(index: number): void {
     if (this.lines.length === 1) {
       this.errorMessage = 'At least one invoice line is required.';
+      this.changeDetectorRef.detectChanges();
       return;
     }
 
@@ -114,31 +115,42 @@ export class InvoiceFormComponent implements OnInit {
 
     if (this.invoiceForm.invalid) {
       this.invoiceForm.markAllAsTouched();
-      this.errorMessage = 'Please fill all required invoice fields.';
+      this.errorMessage = 'Lütfen gerekli fatura alanlarını doldurun.';
+      this.changeDetectorRef.detectChanges();
       return;
     }
 
     const request = this.buildRequest();
 
     this.isSaving = true;
+    this.changeDetectorRef.detectChanges();
 
     const operation =
       this.isEditMode && this.invoiceId
-        ? this.invoiceApiService.updateInvoice(this.invoiceId, request as InvoiceUpdateRequest)
-        : this.invoiceApiService.saveInvoice(request as InvoiceSaveRequest);
+        ? this.invoiceApiService.updateInvoice(this.invoiceId, request)
+        : this.invoiceApiService.saveInvoice(request);
 
-    operation.pipe(finalize(() => (this.isSaving = false))).subscribe({
-      next: () => {
-        this.successMessage = this.isEditMode
-          ? 'Invoice updated successfully.'
-          : 'Invoice created successfully.';
+    operation
+      .pipe(
+        finalize(() => {
+          this.isSaving = false;
+          this.changeDetectorRef.detectChanges();
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.successMessage = this.isEditMode
+            ? 'Fatura başarıyla güncellendi.'
+            : 'Fatura başarıyla oluşturuldu.';
 
-        this.router.navigate(['/invoices']);
-      },
-      error: (error) => {
-        this.errorMessage = this.getErrorMessage(error);
-      },
-    });
+          this.changeDetectorRef.detectChanges();
+          this.router.navigate(['/invoices']);
+        },
+        error: (error) => {
+          this.errorMessage = this.getErrorMessage(error);
+          this.changeDetectorRef.detectChanges();
+        },
+      });
   }
 
   cancel(): void {
@@ -249,16 +261,20 @@ export class InvoiceFormComponent implements OnInit {
       return error.error;
     }
 
+    if (error?.status === 400) {
+      return 'Fatura bilgileri hatalı. Lütfen alanları kontrol edin.';
+    }
+
     if (error?.status === 401) {
-      return 'Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.';
+      return 'Oturum süreniz doldu. Lütfen tekrar giriş yapın.';
     }
 
     if (error?.status === 409) {
-      return 'Fatura numarası zaten mevcut.';
+      return 'Bu fatura numarası zaten kullanılıyor.';
     }
 
     if (error?.status === 0) {
-      return 'API bağlantısı başarısız oldu. Lütfen backend servislerinin çalıştığından emin olun.';
+      return 'Backend bağlantısı kurulamadı. Servislerin çalıştığını kontrol edin.';
     }
 
     return 'Bir sorun oluştu. Lütfen tekrar deneyin.';

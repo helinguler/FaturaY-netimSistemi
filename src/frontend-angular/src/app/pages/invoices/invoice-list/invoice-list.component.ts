@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { InvoiceApiService } from '../../../core/services/invoice-api.service';
@@ -226,80 +227,114 @@ export class InvoiceListComponent implements OnInit {
     return customer ? customer.eMail : '-';
   }
 
-  downloadInvoicePdf(invoice: InvoiceResponse): void {
-    const doc = new jsPDF();
+  async downloadInvoicePdf(invoice: InvoiceResponse): Promise<void> {
+  const customerTitle = this.getCustomerTitle(invoice.customerId);
+  const customerTaxNumber = this.getCustomerTaxNumber(invoice.customerId);
+  const customerAddress = this.getCustomerAddress(invoice.customerId);
+  const customerEmail = this.getCustomerEmail(invoice.customerId);
 
-    const customerTitle = this.getCustomerTitle(invoice.customerId);
-    const customerTaxNumber = this.getCustomerTaxNumber(invoice.customerId);
-    const customerAddress = this.getCustomerAddress(invoice.customerId);
-    const customerEmail = this.getCustomerEmail(invoice.customerId);
+  const container = document.createElement('div');
 
-    let y = 20;
+  container.style.position = 'fixed';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.width = '794px';
+  container.style.padding = '40px';
+  container.style.backgroundColor = '#ffffff';
+  container.style.color = '#000000';
+  container.style.fontFamily = 'Arial, sans-serif';
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.text('INVOICE', 14, y);
+  const lineRows = invoice.lines.map(line => `
+    <tr>
+      <td>${this.escapeHtml(line.itemName)}</td>
+      <td style="text-align: right;">${line.quantity}</td>
+      <td style="text-align: right;">${this.formatMoney(line.price)}</td>
+      <td style="text-align: right;">${this.formatMoney(line.lineTotal)}</td>
+    </tr>
+  `).join('');
 
-    y += 12;
+  container.innerHTML = `
+    <div style="font-size: 28px; font-weight: bold; margin-bottom: 24px;">
+      FATURA
+    </div>
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
+    <div style="display: flex; justify-content: space-between; margin-bottom: 28px;">
+      <div>
+        <div><strong>Fatura No:</strong> ${this.escapeHtml(invoice.invoiceNumber)}</div>
+        <div><strong>Müşteri:</strong> ${this.escapeHtml(customerTitle)}</div>
+        <div><strong>Vergi No:</strong> ${this.escapeHtml(customerTaxNumber)}</div>
+        <div><strong>E-posta:</strong> ${this.escapeHtml(customerEmail)}</div>
+        <div><strong>Adres:</strong> ${this.escapeHtml(customerAddress)}</div>
+      </div>
 
-    doc.text(`Invoice No: ${invoice.invoiceNumber}`, 14, y);
-    y += 7;
+      <div style="text-align: right;">
+        <div><strong>Tarih:</strong> ${this.formatDate(invoice.invoiceDate)}</div>
+        <div><strong>Kayıt Tarihi:</strong> ${this.formatDate(invoice.recordDate)}</div>
+      </div>
+    </div>
 
-    doc.text(`Customer: ${customerTitle}`, 14, y);
-    y += 7;
+    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+      <thead>
+        <tr style="background-color: #f1f3f5;">
+          <th style="border: 1px solid #dee2e6; padding: 10px; text-align: left;">Ürün / Hizmet</th>
+          <th style="border: 1px solid #dee2e6; padding: 10px; text-align: right;">Miktar</th>
+          <th style="border: 1px solid #dee2e6; padding: 10px; text-align: right;">Fiyat</th>
+          <th style="border: 1px solid #dee2e6; padding: 10px; text-align: right;">Toplam</th>
+        </tr>
+      </thead>
 
-    doc.text(`Tax Number: ${customerTaxNumber}`, 14, y);
-    y += 7;
+      <tbody>
+        ${lineRows}
+      </tbody>
 
-    doc.text(`Email: ${customerEmail}`, 14, y);
-    y += 7;
+      <tfoot>
+        <tr>
+          <td colspan="3" style="border: 1px solid #dee2e6; padding: 10px; text-align: right; font-weight: bold;">
+            Genel Toplam
+          </td>
+          <td style="border: 1px solid #dee2e6; padding: 10px; text-align: right; font-weight: bold;">
+            ${this.formatMoney(invoice.totalAmount)}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  `;
 
-    doc.text(`Address: ${customerAddress}`, 14, y);
-    y += 7;
+  document.body.appendChild(container);
 
-    doc.text(`Date: ${this.formatDate(invoice.invoiceDate)}`, 14, y);
-    y += 12;
+  const canvas = await html2canvas(container, {
+    scale: 2,
+    useCORS: true,
+    backgroundColor: '#ffffff'
+  });
 
-    doc.setFont('helvetica', 'bold');
-    doc.text('Item Name', 14, y);
-    doc.text('Qty', 100, y);
-    doc.text('Price', 125, y);
-    doc.text('Total', 160, y);
+  const imageData = canvas.toDataURL('image/png');
 
-    y += 3;
-    doc.line(14, y, 195, y);
-    y += 8;
+  const pdf = new jsPDF('p', 'mm', 'a4');
 
-    doc.setFont('helvetica', 'normal');
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
 
-    for (const line of invoice.lines) {
-      const lineTotal = line.quantity * line.price;
+  const imageWidth = pageWidth;
+  const imageHeight = (canvas.height * imageWidth) / canvas.width;
 
-      doc.text(line.itemName.substring(0, 35), 14, y);
-      doc.text(line.quantity.toString(), 100, y);
-      doc.text(this.formatMoney(line.price), 125, y);
-      doc.text(this.formatMoney(lineTotal), 160, y);
+  let heightLeft = imageHeight;
+  let position = 0;
 
-      y += 8;
+  pdf.addImage(imageData, 'PNG', 0, position, imageWidth, imageHeight);
+  heightLeft -= pageHeight;
 
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
-    }
-
-    y += 2;
-    doc.line(14, y, 195, y);
-    y += 10;
-
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Total Amount: ${this.formatMoney(invoice.totalAmount)}`, 130, y);
-
-    doc.save(`${invoice.invoiceNumber}.pdf`);
+  while (heightLeft > 0) {
+    position = heightLeft - imageHeight;
+    pdf.addPage();
+    pdf.addImage(imageData, 'PNG', 0, position, imageWidth, imageHeight);
+    heightLeft -= pageHeight;
   }
+
+  pdf.save(`${invoice.invoiceNumber}.pdf`);
+
+  document.body.removeChild(container);
+}
 
   formatDate(dateValue: string): string {
     return new Date(dateValue).toLocaleDateString('tr-TR');
@@ -311,6 +346,15 @@ export class InvoiceListComponent implements OnInit {
       maximumFractionDigits: 2,
     });
   }
+
+  private escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
   logout(): void {
     this.authService.logout();
